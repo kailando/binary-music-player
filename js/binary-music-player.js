@@ -45,7 +45,7 @@
         }
       }).toMaster();
 
-      Tone.Transport.bpm.value = 50;
+      Tone.Transport.bpm.value = parseInt(tempo.value, 10);
 
       Tone.Transport.scheduleRepeat(function(time) {
         var number = Math.floor(count);
@@ -82,13 +82,15 @@
   function cacheDOM() {
     customizeButton = document.querySelector(".info");
     customizeArea = document.querySelector(".editor-container");
-    inputAreas = document.querySelectorAll(".notes input");
+    inputAreas = document.querySelectorAll(".notes input :not(#tempo)");
     keys = document.querySelectorAll(".piano-key");
     play = document.querySelector(".play");
+    tempo = document.querySelector("#tempo");
   }
 
   function bindUI() {
     readNotesFromUrl();
+    readBpmFromUrl();
 
     customizeButton.addEventListener("click", onCustomizeButtonClicked, false);
     for (var i = 0; i < keys.length; i++) {
@@ -99,9 +101,10 @@
       inputAreas[i].value = notes[i];
       inputAreas[i].addEventListener("click", e => {
         currentFocusedInput = parseInt(e.target.dataset.index);
-      });
+      }, false);
     }
 
+    tempo.addEventListener("click", onBpmChanged, false);
     play.addEventListener("click", playOrPause, false);
   }
 
@@ -119,6 +122,15 @@
         {},
         "",
         `?keys=${notes.join(",")}`.replace(/\#/g, "^")
+      );
+  }
+
+  function setBpmInUrl() {
+    history.replaceState &&
+      history.replaceState(
+        {},
+        "",
+        `&tempo=${Tone.Transport.bpm.value}`
       );
   }
 
@@ -140,9 +152,23 @@
           return;
         }
       }
-
-      notes = keyData;
     }
+
+    if (keyData.length > 10) {
+      keyData = keyData.slice(0, 10);
+    }
+  }
+
+  function readBpmFromUrl() {
+    const url = document.location.href;
+    const urlData = new URL(url);
+    const tempo = urlData.searchParams.get("tempo");
+
+    if (!tempo) {
+      return;
+    }
+    Tone.Transport.bpm.value = parseInt(tempo);
+    tempo.value = tempo;
   }
 
   function onKeyClicked(e) {
@@ -157,6 +183,10 @@
     inputAreas[currentFocusedInput].focus();
 
     setNotesInUrl();
+  }
+
+  function onBpmChanged(e) {
+    Tone.Transport.bpm.value = parseInt(tempo.value, 10);
   }
 
   cacheDOM();
